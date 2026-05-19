@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service & Project Management System</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f0f2f7; }
+    #root { min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, createContext, useContext } = React;
+
+
+
+/* ── fonts ── */
+const FONT = "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap";
+
+/* ══════════════════════════════════════════════
+   USERS & PERMISSIONS
+══════════════════════════════════════════════ */
+const USERS = [
+  { id:"U001", name:"Aisha Rasheed",   email:"aisha@service.mv",   password:"counter123", role:"Counter Staff", branch:"Male SC",   avatar:"AR", color:"#2563eb" },
+  { id:"U002", name:"Mohamed Shifaz",  email:"shifaz@service.mv",  password:"super123",   role:"Supervisor",    branch:"Male SC",   avatar:"MS", color:"#7c3aed" },
+  { id:"U003", name:"Ali Hassan",      email:"ali@service.mv",     password:"tech123",    role:"Technician",    branch:"Male SC",   avatar:"AH", color:"#0d9488" },
+  { id:"U004", name:"Ibrahim Saeed",   email:"ibrahim@service.mv", password:"tech123",    role:"Technician",    branch:"Male SC",   avatar:"IS", color:"#0d9488" },
+  { id:"U005", name:"Fathimath Leena", email:"leena@service.mv",   password:"manager123", role:"Manager",       branch:"Male SC",   avatar:"FL", color:"#d97706" },
+  { id:"U006", name:"Hassan Admin",    email:"admin@service.mv",   password:"admin123",   role:"Admin",         branch:"All",       avatar:"HA", color:"#dc2626" },
+];
+
+const ROLE_PERMS = {
+  "Counter Staff": { createTask:true,  viewAll:false, assign:false, updateStatus:false, reports:false, admin:false, nav:["new","mytasks"] },
+  "Supervisor":    { createTask:true,  viewAll:true,  assign:true,  updateStatus:true,  reports:true,  admin:false, nav:["dashboard","pool","new","reports"] },
+  "Technician":    { createTask:false, viewAll:false, assign:false, updateStatus:true,  reports:false, admin:false, nav:["mytasks"] },
+  "Manager":       { createTask:true,  viewAll:true,  assign:true,  updateStatus:true,  reports:true,  admin:false, nav:["dashboard","pool","new","reports"] },
+  "Admin":         { createTask:true,  viewAll:true,  assign:true,  updateStatus:true,  reports:true,  admin:true,  nav:["dashboard","pool","new","reports","admin"] },
+};
+
+const ROLE_COLORS = {
+  "Counter Staff": { color:"#2563eb", bg:"#eff6ff", icon:"🖥" },
+  "Supervisor":    { color:"#7c3aed", bg:"#f5f3ff", icon:"👔" },
+  "Technician":    { color:"#0d9488", bg:"#f0fdfa", icon:"🔧" },
+  "Manager":       { color:"#d97706", bg:"#fffbeb", icon:"📊" },
+  "Admin":         { color:"#dc2626", bg:"#fef2f2", icon:"⚙" },
+};
+
+/* ══════════════════════════════════════════════
+   TASKS DATA
+══════════════════════════════════════════════ */
+const INIT_TASKS = [
+  { id:"TSK-001", type:"Service Task",               priority:"High",            status:"In Progress",          customer:"Ahmed Mohamed",  contact:"7771234", product:"Samsung Split AC",      category:"Air Conditioning", brand:"Samsung",  model:"AR18",        serial:"SN-00123", warranty:"Under Warranty",      complaint:"Not cooling after power outage",    technician:"Ali Hassan",      techId:"U003", createdBy:"U001", branch:"Male SC", created:"2026-05-15", targetDate:"2026-05-22", supervisorComment:"Check capacitor and gas" },
+  { id:"TSK-002", type:"Emergency Breakdown Task",   priority:"Critical / Urgent",status:"Assigned",             customer:"Fathimath Noor", contact:"7782345", product:"LG Refrigerator",       category:"Electronics",      brand:"LG",       model:"GN-B392",     serial:"SN-00456", warranty:"Non-Warranty",        complaint:"Loud compressor noise",            technician:"Ibrahim Saeed",   techId:"U004", createdBy:"U001", branch:"Male SC", created:"2026-05-16", targetDate:"2026-05-19", supervisorComment:"Priority — restaurant"  },
+  { id:"TSK-003", type:"Preventive Maintenance Task",priority:"Medium",           status:"Submitted",            customer:"Hassan Ali",     contact:"7793456", product:"Daikin AC",             category:"Air Conditioning", brand:"Daikin",   model:"FTXS35",      serial:"SN-00789", warranty:"AMC / Service Contract",complaint:"Annual PM service",               technician:null,              techId:null,   createdBy:"U001", branch:"Male SC", created:"2026-05-17" },
+  { id:"TSK-004", type:"Inspection / Survey Task",   priority:"Low",             status:"Completed",            customer:"Mariyam Shifa",  contact:"7704567", product:"Panasonic Washing Machine",category:"Electronics",    brand:"Panasonic",model:"NA-F70B5",    serial:"SN-01012", warranty:"Non-Warranty",        complaint:"Vibration during spin cycle",      technician:"Mohamed Rasheed", techId:"U007", createdBy:"U001", branch:"Male SC", created:"2026-05-14", targetDate:"2026-05-17" },
+  { id:"TSK-005", type:"Installation Task",          priority:"High",            status:"Waiting for Spare Parts",customer:"Ahmed Riyaz",  contact:"7715678", product:"Midea Split AC",         category:"Air Conditioning", brand:"Midea",    model:"MSMAAU-12HRN1",serial:"SN-01345", warranty:"Under Warranty",      complaint:"New bedroom unit installation",    technician:"Ali Hassan",      techId:"U003", createdBy:"U001", branch:"Male SC", created:"2026-05-18" },
+];
+
+const TASK_TYPES = ["Service Task","Project Task","Preventive Maintenance Task","Emergency Breakdown Task","Installation Task","Inspection / Survey Task"];
+const PRIORITIES = ["Low","Medium","High","Critical / Urgent"];
+const STATUSES   = ["New","Submitted","Assigned","Accepted","In Progress","Waiting for Spare Parts","Pending Customer Approval","Completed","Replacement","Closed","Cancelled"];
+const WARRANTY   = ["Under Warranty","Non-Warranty","AMC / Service Contract"];
+const CTYPES     = ["Residential","Commercial","Corporate"];
+const AREAS      = ["Air Conditioning","DAP","Electronics","Other"];
+const BRANCHES   = ["Male SC","Hulhumale Branch","Addu Branch"];
+
+const STATUS_STYLE = {
+  "New":                        { bg:"#eff6ff", cl:"#1d4ed8", dot:"#3b82f6" },
+  "Submitted":                  { bg:"#fef9c3", cl:"#854d0e", dot:"#eab308" },
+  "Assigned":                   { bg:"#f3e8ff", cl:"#6b21a8", dot:"#a855f7" },
+  "Accepted":                   { bg:"#dcfce7", cl:"#166534", dot:"#22c55e" },
+  "In Progress":                { bg:"#dbeafe", cl:"#1e40af", dot:"#3b6ef8" },
+  "Waiting for Spare Parts":    { bg:"#ffedd5", cl:"#9a3412", dot:"#f97316" },
+  "Pending Customer Approval":  { bg:"#fef3c7", cl:"#92400e", dot:"#f59e0b" },
+  "Completed":                  { bg:"#d1fae5", cl:"#065f46", dot:"#10b981" },
+  "Replacement":                { bg:"#fce7f3", cl:"#9d174d", dot:"#ec4899" },
+  "Closed":                     { bg:"#f3f4f6", cl:"#374151", dot:"#9ca3af" },
+  "Cancelled":                  { bg:"#fee2e2", cl:"#991b1b", dot:"#ef4444" },
+};
+const PRIO_STYLE = {
+  "Low":             { bg:"#f0fdf4", cl:"#166534", bd:"#86efac" },
+  "Medium":          { bg:"#fffbeb", cl:"#92400e", bd:"#fcd34d" },
+  "High":            { bg:"#fff7ed", cl:"#9a3412", bd:"#fdba74" },
+  "Critical / Urgent":{ bg:"#fef2f2", cl:"#991b1b", bd:"#fca5a5" },
+};
+
+/* ══════════════════════════════════════════════
+   AUTH CONTEXT
+══════════════════════════════════════════════ */
+const Auth = createContext(null);
+const useAuth = () => useContext(Auth);
+
+/* ══════════════════════════════════════════════
+   TINY UI HELPERS
+══════════════════════════════════════════════ */
+const SBadge = ({ s }) => {
+  const x = STATUS_STYLE[s] || STATUS_STYLE["New"];
+  return (
+    <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px 3px 7px", borderRadius:99, background:x.bg, color:x.cl, fontSize:11, fontWeight:600, whiteSpace:"nowrap" }}>
+      <span style={{ width:6, height:6, borderRadius:"50%", background:x.dot, flexShrink:0 }} />
+      {s}
+    </span>
+  );
+};
+
+const PBadge = ({ p }) => {
+  const x = PRIO_STYLE[p] || PRIO_STYLE["Low"];
+  return <span style={{ display:"inline-block", padding:"3px 9px", borderRadius:99, background:x.bg, color:x.cl, border:`1.5px solid ${x.bd}`, fontSize:11, fontWeight:600 }}>{p}</span>;
+};
+
+const RolePill = ({ role }) => {
+  const r = ROLE_COLORS[role] || { color:"#6b7280", bg:"#f3f4f6", icon:"" };
+  return <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, background:r.bg, color:r.color, fontSize:11.5, fontWeight:600, border:`1px solid ${r.color}30` }}>{r.icon} {role}</span>;
+};
+
+const Inp = ({ value, onChange, placeholder, type="text" }) => (
+  <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} type={type}
+    style={{ width:"100%", padding:"9px 12px", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13.5, fontFamily:"inherit", outline:"none", color:"#111827", background:"#fff" }} />
+);
+
+const Sel = ({ value, onChange, opts, placeholder }) => (
+  <select value={value} onChange={e => onChange(e.target.value)}
+    style={{ width:"100%", padding:"9px 12px", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13.5, fontFamily:"inherit", outline:"none", color:"#111827", background:"#fff" }}>
+    {placeholder && <option value="">{placeholder}</option>}
+    {opts.map(o => <option key={o} value={o}>{o}</option>)}
+  </select>
+);
+
+const Textarea = ({ value, onChange, placeholder, rows=3 }) => (
+  <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows}
+    style={{ width:"100%", padding:"9px 12px", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13.5, fontFamily:"inherit", outline:"none", color:"#111827", background:"#fff", resize:"vertical" }} />
+);
+
+const Lbl = ({ text, req }) => (
+  <label style={{ fontSize:12, fontWeight:600, color:"#6b7280", display:"block", marginBottom:4 }}>
+    {text}{req && <span style={{ color:"#ef4444", marginLeft:2 }}>*</span>}
+  </label>
+);
+
+const FRow = ({ label, req, children, span=1 }) => (
+  <div style={{ gridColumn:`span ${span}`, display:"flex", flexDirection:"column" }}>
+    <Lbl text={label} req={req} />
+    {children}
+  </div>
+);
+
+const SecHead = ({ title }) => (
+  <div style={{ gridColumn:"1/-1", fontSize:10.5, fontWeight:700, color:"#9ca3af", letterSpacing:".08em", textTransform:"uppercase", borderBottom:"1.5px solid #f3f4f6", paddingBottom:7, marginTop:6 }}>{title}</div>
+);
+
+/* ══════════════════════════════════════════════
+   LOGIN PAGE
+══════════════════════════════════════════════ */
+function LoginPage({ onLogin }) {
+  const [email, setEmail]       = useState("");
+  const [pass,  setPass]        = useState("");
+  const [err,   setErr]         = useState("");
+  const [busy,  setBusy]        = useState(false);
+  const [picked, setPicked]     = useState(null);
+  const [showP, setShowP]       = useState(false);
+
+  const doLogin = () => {
+    if (!email || !pass) { setErr("Please enter email and password."); return; }
+    setBusy(true);
+    setErr("");
+    setTimeout(() => {
+      const found = USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+      if (found) {
+        onLogin(found);
+      } else {
+        setErr("Invalid email or password.");
+        setBusy(false);
+      }
+    }, 500);
+  };
+
+  const pickDemo = u => { setPicked(u.id); setEmail(u.email); setPass(u.password); setErr(""); };
+
+  return (
+    <div style={{ minHeight:"100vh", display:"flex", fontFamily:"'DM Sans',sans-serif" }}>
+      {/* ── left panel ── */}
+      <div style={{ flex:1, background:"#0f1117", display:"flex", flexDirection:"column", justifyContent:"center", padding:"60px 56px", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse at 25% 55%, #1e2d6b55 0%, transparent 65%), radial-gradient(ellipse at 80% 15%, #2d1b5e44 0%, transparent 55%)" }} />
+        <div style={{ position:"relative", zIndex:1 }}>
+          <div style={{ width:48, height:48, borderRadius:13, background:"linear-gradient(135deg,#3b6ef8,#6c47ff)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, fontWeight:800, color:"#fff", marginBottom:28 }}>S</div>
+          <div style={{ fontSize:32, fontWeight:700, color:"#fff", lineHeight:1.2, marginBottom:14 }}>Service & Project<br/>Management</div>
+          <div style={{ fontSize:14, color:"#6b7280", lineHeight:1.8, maxWidth:380, marginBottom:40 }}>Streamlined task management — from customer intake to technician dispatch and completion.</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {[["🗂","Task lifecycle","Create, assign, track and close service tasks"],["🛡","Role-based access","5 roles: Counter Staff → Admin"],["🔧","Spare parts ready","SAP S/4HANA integration support"]].map(([ico,t,d]) => (
+              <div key={t} style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"12px 14px", background:"rgba(255,255,255,.04)", borderRadius:10, border:"1px solid rgba(255,255,255,.06)" }}>
+                <span style={{ fontSize:18, flexShrink:0 }}>{ico}</span>
+                <div><div style={{ fontSize:13, fontWeight:600, color:"#e5e7eb", marginBottom:2 }}>{t}</div><div style={{ fontSize:12, color:"#6b7280" }}>{d}</div></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── right panel ── */}
+      <div style={{ width:460, background:"#fff", display:"flex", flexDirection:"column", justifyContent:"center", padding:"48px 44px", overflowY:"auto" }}>
+        <div style={{ marginBottom:28 }}>
+          <div style={{ fontSize:22, fontWeight:700, color:"#111827", marginBottom:4 }}>Sign in</div>
+          <div style={{ fontSize:13.5, color:"#9ca3af" }}>Enter your credentials to continue</div>
+        </div>
+
+        {/* Email */}
+        <div style={{ marginBottom:14 }}>
+          <Lbl text="Email address" req />
+          <Inp value={email} onChange={v => { setEmail(v); setErr(""); }} placeholder="your@service.mv" type="email" />
+        </div>
+
+        {/* Password */}
+        <div style={{ marginBottom:16 }}>
+          <Lbl text="Password" req />
+          <div style={{ position:"relative" }}>
+            <Inp value={pass} onChange={v => { setPass(v); setErr(""); }} placeholder="••••••••" type={showP ? "text" : "password"} />
+            <button onClick={() => setShowP(x => !x)}
+              style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:15, color:"#9ca3af" }}>
+              {showP ? "🙈" : "👁"}
+            </button>
+          </div>
+        </div>
+
+        {/* Error */}
+        {err && (
+          <div style={{ background:"#fef2f2", border:"1.5px solid #fca5a5", borderRadius:9, padding:"9px 12px", fontSize:13, color:"#dc2626", marginBottom:14, display:"flex", alignItems:"center", gap:7 }}>
+            ⚠ {err}
+          </div>
+        )}
+
+        {/* Sign in button */}
+        <button onClick={doLogin} disabled={busy || !email || !pass}
+          style={{ width:"100%", padding:"11px", background: busy || !email || !pass ? "#e5e7eb" : "#3b6ef8", color: busy || !email || !pass ? "#9ca3af" : "#fff", border:"none", borderRadius:10, fontSize:14, fontWeight:600, cursor: busy || !email || !pass ? "default" : "pointer", marginBottom:24, display:"flex", alignItems:"center", justifyContent:"center", gap:8, fontFamily:"inherit" }}>
+          {busy ? "Signing in…" : "Sign in →"}
+        </button>
+
+        {/* Divider */}
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
+          <div style={{ flex:1, height:1, background:"#f3f4f6" }} />
+          <span style={{ fontSize:12, color:"#9ca3af" }}>Quick demo accounts</span>
+          <div style={{ flex:1, height:1, background:"#f3f4f6" }} />
+        </div>
+
+        {/* Demo accounts */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+          {USERS.map(u => {
+            const r = ROLE_COLORS[u.role];
+            const active = picked === u.id;
+            return (
+              <button key={u.id} onClick={() => pickDemo(u)}
+                style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 11px", border:`1.5px solid ${active ? r.color+"88" : "#e5e7eb"}`, borderRadius:10, background: active ? r.bg : "#fafafa", cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
+                <div style={{ width:28, height:28, borderRadius:8, background:r.color+"22", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:r.color, flexShrink:0 }}>{u.avatar}</div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:"#111827", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{u.name.split(" ")[0]}</div>
+                  <div style={{ fontSize:10.5, color:r.color, fontWeight:600 }}>{u.role}</div>
+                </div>
+                {active && <span style={{ marginLeft:"auto", color:r.color, fontSize:14, flexShrink:0 }}>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {picked && (
+          <div style={{ marginTop:10, padding:"8px 12px", background:"#f0fdf4", border:"1px solid #86efac", borderRadius:8, fontSize:12, color:"#166534", textAlign:"center" }}>
+            Credentials filled — click Sign in ↑
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   DRAWER
+══════════════════════════════════════════════ */
+function Drawer({ title, sub, onClose, children, width=700 }) {
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:400, display:"flex" }}>
+      <div onClick={onClose} style={{ flex:1, background:"rgba(0,0,0,.4)" }} />
+      <div style={{ width, maxWidth:"96vw", background:"#fff", display:"flex", flexDirection:"column", boxShadow:"-10px 0 40px rgba(0,0,0,.15)", overflowY:"auto" }}>
+        <div style={{ padding:"20px 26px 16px", borderBottom:"1.5px solid #f3f4f6", display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexShrink:0, position:"sticky", top:0, background:"#fff", zIndex:10 }}>
+          <div>
+            <div style={{ fontSize:16, fontWeight:700 }}>{title}</div>
+            {sub && <div style={{ fontSize:12, color:"#9ca3af", marginTop:2 }}>{sub}</div>}
+          </div>
+          <button onClick={onClose} style={{ width:30, height:30, background:"#f3f4f6", border:"none", borderRadius:7, fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"#6b7280", flexShrink:0 }}>✕</button>
+        </div>
+        <div style={{ padding:"22px 26px", flex:1 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   TASK FORM (3 steps)
+══════════════════════════════════════════════ */
+function TaskForm({ init, onSave, onClose }) {
+  const { user } = useAuth();
+  const blank = { type:"Service Task", priority:"Medium", status:"New", customer:"", contact:"", altContact:"", email:"", customerType:"Residential", repairLocation:"Inhouse Repair", siteLocation:"", complaint:"", product:"", category:"Air Conditioning", brand:"", model:"", serial:"", warranty:"Non-Warranty", warrantyNumber:"", purchaseDate:"", condition:"", accessories:"", branch: user.branch === "All" ? BRANCHES[0] : user.branch };
+  const [f, setF] = useState(init || blank);
+  const [step, setStep] = useState(0);
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const STEPS = ["Customer", "Product", "Settings"];
+
+  return (
+    <div>
+      {/* Step indicator */}
+      <div style={{ display:"flex", background:"#f9fafb", borderRadius:10, padding:4, marginBottom:22 }}>
+        {STEPS.map((s, i) => (
+          <button key={s} onClick={() => setStep(i)}
+            style={{ flex:1, padding:"7px 4px", border:"none", borderRadius:8, fontSize:13, fontWeight: step===i ? 600 : 400, background: step===i ? "#fff" : "transparent", color: step===i ? "#111827" : "#9ca3af", cursor:"pointer", fontFamily:"inherit", boxShadow: step===i ? "0 1px 3px rgba(0,0,0,.08)" : "none" }}>
+            <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:17, height:17, borderRadius:"50%", fontSize:10, fontWeight:700, marginRight:5, background: step===i ? "#3b6ef8" : i<step ? "#10b981" : "#d1d5db", color:"#fff" }}>{i < step ? "✓" : i+1}</span>
+            {s}
+          </button>
+        ))}
+      </div>
+
+      {step === 0 && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:13 }}>
+          <SecHead title="Customer details" />
+          <FRow label="Full name" req><Inp value={f.customer} onChange={v => set("customer",v)} placeholder="Customer name" /></FRow>
+          <FRow label="Customer type"><Sel value={f.customerType} onChange={v => set("customerType",v)} opts={CTYPES} /></FRow>
+          <FRow label="Contact number" req><Inp value={f.contact} onChange={v => set("contact",v)} placeholder="7XXXXXXX" /></FRow>
+          <FRow label="Alternative contact"><Inp value={f.altContact||""} onChange={v => set("altContact",v)} placeholder="Optional" /></FRow>
+          <FRow label="Email"><Inp value={f.email||""} onChange={v => set("email",v)} placeholder="email@example.com" /></FRow>
+          <FRow label="Repair location"><Sel value={f.repairLocation} onChange={v => set("repairLocation",v)} opts={["Inhouse Repair","Customer Premises / Site Visit"]} /></FRow>
+          {f.repairLocation === "Customer Premises / Site Visit" && <FRow label="Site / Maps link" span={2}><Inp value={f.siteLocation||""} onChange={v => set("siteLocation",v)} placeholder="https://maps.google.com/…" /></FRow>}
+          <SecHead title="Complaint" />
+          <FRow label="Problem description" req span={2}><Textarea value={f.complaint} onChange={v => set("complaint",v)} placeholder="Describe the issue…" rows={4} /></FRow>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:13 }}>
+          <SecHead title="Product details" />
+          <FRow label="Product name" req><Inp value={f.product} onChange={v => set("product",v)} placeholder="e.g. Samsung Split AC" /></FRow>
+          <FRow label="Category"><Sel value={f.category} onChange={v => set("category",v)} opts={AREAS} /></FRow>
+          <FRow label="Brand"><Inp value={f.brand||""} onChange={v => set("brand",v)} placeholder="e.g. Samsung" /></FRow>
+          <FRow label="Model number"><Inp value={f.model||""} onChange={v => set("model",v)} placeholder="Model" /></FRow>
+          <FRow label="Serial number"><Inp value={f.serial||""} onChange={v => set("serial",v)} placeholder="SN-XXXXX" /></FRow>
+          <FRow label="Warranty status"><Sel value={f.warranty} onChange={v => set("warranty",v)} opts={WARRANTY} /></FRow>
+          {f.warranty !== "Non-Warranty" && <FRow label="Warranty / bill number"><Inp value={f.warrantyNumber||""} onChange={v => set("warrantyNumber",v)} placeholder="WRN-XXXXX" /></FRow>}
+          <FRow label="Purchase date"><Inp value={f.purchaseDate||""} onChange={v => set("purchaseDate",v)} type="date" /></FRow>
+          <SecHead title="Condition at receiving" />
+          <FRow label="Condition notes" span={2}><Textarea value={f.condition||""} onChange={v => set("condition",v)} placeholder="Visible damage, missing parts…" rows={2} /></FRow>
+          <FRow label="Accessories received" span={2}><Inp value={f.accessories||""} onChange={v => set("accessories",v)} placeholder="Remote, power cable, stand…" /></FRow>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:13 }}>
+          <SecHead title="Task settings" />
+          <FRow label="Task type"><Sel value={f.type} onChange={v => set("type",v)} opts={TASK_TYPES} /></FRow>
+          <FRow label="Priority"><Sel value={f.priority} onChange={v => set("priority",v)} opts={PRIORITIES} /></FRow>
+          <FRow label="Branch"><Sel value={f.branch} onChange={v => set("branch",v)} opts={BRANCHES} /></FRow>
+          <FRow label="Status"><Sel value={f.status} onChange={v => set("status",v)} opts={STATUSES} /></FRow>
+        </div>
+      )}
+
+      {/* Footer buttons */}
+      <div style={{ display:"flex", justifyContent:"space-between", marginTop:24, paddingTop:16, borderTop:"1.5px solid #f3f4f6" }}>
+        <button onClick={() => setStep(s => Math.max(0,s-1))} style={{ visibility: step===0 ? "hidden":"visible", padding:"9px 18px", background:"#fff", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13.5, cursor:"pointer", fontFamily:"inherit" }}>← Back</button>
+        <div style={{ display:"flex", gap:10 }}>
+          <button onClick={onClose} style={{ padding:"9px 18px", background:"#fff", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13.5, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
+          {step < 2
+            ? <button onClick={() => setStep(s => s+1)} style={{ padding:"9px 20px", background:"#3b6ef8", color:"#fff", border:"none", borderRadius:9, fontSize:13.5, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Continue →</button>
+            : <>
+                <button onClick={() => onSave({ ...f, status:"New", createdBy:user.id })} style={{ padding:"9px 18px", background:"#fff", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13.5, cursor:"pointer", fontFamily:"inherit" }}>Save draft</button>
+                <button onClick={() => onSave({ ...f, status:"Submitted", createdBy:user.id })} style={{ padding:"9px 20px", background:"#3b6ef8", color:"#fff", border:"none", borderRadius:9, fontSize:13.5, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Submit task</button>
+              </>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ASSIGN FORM
+══════════════════════════════════════════════ */
+function AssignForm({ task, onSave, onClose }) {
+  const techUsers = USERS.filter(u => u.role === "Technician");
+  const [techId,   setTechId]  = useState(task.techId || "");
+  const [comment,  setComment] = useState(task.supervisorComment || "");
+  const [date,     setDate]    = useState(task.targetDate || "");
+  const [priority, setPriority]= useState(task.priority);
+  const sel = USERS.find(u => u.id === techId);
+
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:13 }}>
+      <SecHead title="Select technician" />
+      <div style={{ gridColumn:"1/-1", display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+        {techUsers.map(t => (
+          <button key={t.id} onClick={() => setTechId(t.id)}
+            style={{ display:"flex", alignItems:"center", gap:9, padding:"10px 12px", border:`1.5px solid ${techId===t.id ? "#3b6ef8" : "#e5e7eb"}`, borderRadius:10, background: techId===t.id ? "#eff6ff" : "#fafafa", cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
+            <div style={{ width:30, height:30, borderRadius:8, background:t.color+"22", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:t.color, flexShrink:0 }}>{t.avatar}</div>
+            <div><div style={{ fontSize:13, fontWeight:600 }}>{t.name}</div><div style={{ fontSize:11, color:"#9ca3af" }}>{t.branch}</div></div>
+            {techId===t.id && <span style={{ marginLeft:"auto", color:"#3b6ef8" }}>✓</span>}
+          </button>
+        ))}
+      </div>
+      <SecHead title="Assignment details" />
+      <FRow label="Priority"><Sel value={priority} onChange={setPriority} opts={PRIORITIES} /></FRow>
+      <FRow label="Target completion date"><Inp value={date} onChange={setDate} type="date" /></FRow>
+      <FRow label="Supervisor comments" span={2}><Textarea value={comment} onChange={setComment} placeholder="Notes for the technician…" rows={3} /></FRow>
+      <div style={{ gridColumn:"1/-1", display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:"1.5px solid #f3f4f6" }}>
+        <button onClick={onClose} style={{ padding:"9px 18px", background:"#fff", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13.5, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
+        <button onClick={() => onSave({ ...task, technician:sel?.name, techId, supervisorComment:comment, targetDate:date, priority, status:"Assigned" })} disabled={!techId}
+          style={{ padding:"9px 20px", background: techId ? "#3b6ef8" : "#e5e7eb", color: techId ? "#fff" : "#9ca3af", border:"none", borderRadius:9, fontSize:13.5, fontWeight:600, cursor: techId ? "pointer" : "default", fontFamily:"inherit" }}>
+          Assign technician
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   TASK DETAIL
+══════════════════════════════════════════════ */
+function TaskDetail({ task, onClose, onEdit, onAssign, onStatusChange }) {
+  const { user, perms } = useAuth();
+  const [tab,    setTab]    = useState("overview");
+  const [find,   setFind]   = useState(task.findings || "");
+  const [repair, setRepair] = useState(task.repairAction || "");
+  const [nst,    setNst]    = useState(task.status);
+  const [spares, setSpares] = useState(task.spares || []);
+  const [sp,     setSp]     = useState({ part:"", qty:"1", price:"" });
+  const TABS = ["overview","technician","spare parts","call log","timeline"];
+
+  const Row = ({ l, v }) => v ? (
+    <div style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:"1px solid #f9fafb" }}>
+      <span style={{ fontSize:12.5, color:"#9ca3af", fontWeight:500 }}>{l}</span>
+      <span style={{ fontSize:13, color:"#111827", textAlign:"right", maxWidth:"58%" }}>{v}</span>
+    </div>
+  ) : null;
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ marginBottom:16 }}>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
+          <SBadge s={task.status} />
+          <PBadge p={task.priority} />
+          <span style={{ display:"inline-block", padding:"3px 9px", borderRadius:99, background:"#f9fafb", color:"#6b7280", fontSize:11, fontWeight:600 }}>{task.warranty}</span>
+        </div>
+        <div style={{ fontSize:19, fontWeight:700 }}>{task.customer}</div>
+        <div style={{ fontSize:13, color:"#9ca3af", marginTop:2 }}>{task.product} · <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12 }}>{task.serial}</span></div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:"flex", borderBottom:"1.5px solid #f3f4f6", marginBottom:18, gap:0 }}>
+        {TABS.map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            style={{ padding:"7px 13px", border:"none", background:"none", cursor:"pointer", fontSize:12.5, fontWeight: tab===t ? 600 : 400, color: tab===t ? "#3b6ef8" : "#9ca3af", borderBottom: tab===t ? "2px solid #3b6ef8" : "2px solid transparent", marginBottom:-1.5, textTransform:"capitalize", fontFamily:"inherit" }}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && (
+        <div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
+            <div style={{ background:"#f9fafb", borderRadius:11, padding:"13px 15px" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:".07em", marginBottom:9 }}>Customer</div>
+              <Row l="Name" v={task.customer} /><Row l="Contact" v={task.contact} /><Row l="Email" v={task.email||"—"} /><Row l="Type" v={task.customerType} /><Row l="Location" v={task.repairLocation} /><Row l="Branch" v={task.branch} />
+            </div>
+            <div style={{ background:"#f9fafb", borderRadius:11, padding:"13px 15px" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:".07em", marginBottom:9 }}>Product</div>
+              <Row l="Item" v={task.product} /><Row l="Brand" v={task.brand||"—"} /><Row l="Model" v={task.model} /><Row l="Serial" v={task.serial} /><Row l="Category" v={task.category} /><Row l="Warranty" v={task.warranty} />
+            </div>
+          </div>
+          <div style={{ background:"#fffbeb", border:"1.5px solid #fde68a", borderRadius:11, padding:"12px 15px", marginBottom:10 }}>
+            <div style={{ fontSize:10, fontWeight:700, color:"#92400e", textTransform:"uppercase", letterSpacing:".07em", marginBottom:7 }}>Complaint</div>
+            <div style={{ fontSize:13.5, color:"#111827", lineHeight:1.65 }}>{task.complaint || "—"}</div>
+          </div>
+          {task.technician && (
+            <div style={{ background:"#eff6ff", border:"1.5px solid #bfdbfe", borderRadius:11, padding:"12px 15px" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"#1e40af", textTransform:"uppercase", letterSpacing:".07em", marginBottom:9 }}>Assignment</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+                {[["Technician",task.technician],["Target date",task.targetDate||"—"],["Notes",task.supervisorComment||"—"]].map(([l,v]) => (
+                  <div key={l}><div style={{ fontSize:11, color:"#60a5fa", marginBottom:3 }}>{l}</div><div style={{ fontSize:13, fontWeight:600, color:"#1e40af" }}>{v}</div></div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "technician" && (
+        perms.updateStatus ? (
+          <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
+            <FRow label="Technical findings"><Textarea value={find} onChange={setFind} placeholder="Observations from inspection…" rows={4} /></FRow>
+            <FRow label="Repair actions taken"><Textarea value={repair} onChange={setRepair} placeholder="Repair steps performed…" rows={4} /></FRow>
+            <div style={{ display:"flex", gap:10, alignItems:"flex-end" }}>
+              <div style={{ flex:1 }}><FRow label="Update status"><Sel value={nst} onChange={setNst} opts={STATUSES} /></FRow></div>
+              <button onClick={() => onStatusChange(task.id, nst, find, repair)}
+                style={{ padding:"9px 20px", background:"#3b6ef8", color:"#fff", border:"none", borderRadius:9, fontSize:13.5, fontWeight:600, cursor:"pointer", fontFamily:"inherit", alignSelf:"flex-end" }}>
+                Save update
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign:"center", padding:"40px", color:"#9ca3af" }}>
+            <div style={{ fontSize:28, marginBottom:12 }}>🔒</div>
+            <div style={{ fontSize:14, fontWeight:600, color:"#111827" }}>Access restricted</div>
+            <div style={{ fontSize:13, marginTop:6 }}>Only technicians and supervisors can update task status.</div>
+          </div>
+        )
+      )}
+
+      {tab === "spare parts" && (
+        <div>
+          <div style={{ display:"grid", gridTemplateColumns:"2fr 70px 100px 40px", gap:8, marginBottom:14, alignItems:"end" }}>
+            {[["Part name / number","part"],["Qty","qty"],["Price (MVR)","price"]].map(([l,k]) => (
+              <div key={k}><Lbl text={l} /><Inp value={sp[k]} onChange={v => setSp(s => ({ ...s, [k]:v }))} placeholder="" /></div>
+            ))}
+            <button onClick={() => { if (sp.part) { setSpares(x => [...x, { ...sp, id:Date.now() }]); setSp({ part:"", qty:"1", price:"" }); }}}
+              style={{ height:38, background:"#3b6ef8", color:"#fff", border:"none", borderRadius:9, fontSize:20, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", alignSelf:"flex-end" }}>+</button>
+          </div>
+          {spares.length === 0
+            ? <div style={{ textAlign:"center", padding:"28px", color:"#9ca3af", background:"#f9fafb", borderRadius:11, fontSize:13.5 }}>No spare parts added</div>
+            : <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                <thead><tr style={{ borderBottom:"1.5px solid #e5e7eb" }}>{["Part","Qty","Unit price","Total",""].map(h => <th key={h} style={{ padding:"8px 10px", textAlign:"left", color:"#9ca3af", fontWeight:600, fontSize:11 }}>{h}</th>)}</tr></thead>
+                <tbody>{spares.map(s => (
+                  <tr key={s.id} style={{ borderBottom:"1px solid #f3f4f6" }}>
+                    <td style={{ padding:"9px 10px" }}>{s.part}</td>
+                    <td style={{ padding:"9px 10px" }}>{s.qty}</td>
+                    <td style={{ padding:"9px 10px" }}>MVR {s.price||"—"}</td>
+                    <td style={{ padding:"9px 10px", fontWeight:600 }}>MVR {s.price ? (parseFloat(s.qty||1)*parseFloat(s.price)).toFixed(2) : "—"}</td>
+                    <td style={{ padding:"9px 10px" }}><button onClick={() => setSpares(x => x.filter(r => r.id!==s.id))} style={{ background:"#fef2f2", color:"#dc2626", border:"none", borderRadius:6, padding:"3px 9px", cursor:"pointer", fontSize:12, fontFamily:"inherit" }}>Remove</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+          }
+        </div>
+      )}
+
+      {tab === "call log" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <FRow label="New log entry"><Textarea rows={5} value="" onChange={() => {}} placeholder="Date · Time · Discussion summary · Next action…" /></FRow>
+          <button style={{ alignSelf:"flex-start", padding:"9px 18px", background:"#3b6ef8", color:"#fff", border:"none", borderRadius:9, fontSize:13.5, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Save entry</button>
+        </div>
+      )}
+
+      {tab === "timeline" && (
+        <div>
+          {[
+            { label:"Task created", sub:`${task.created} · Counter staff`, color:"#3b6ef8" },
+            task.status !== "New" ? { label:`Status → ${task.status}`, sub:"System", color:"#10b981" } : null,
+            task.technician ? { label:`Assigned to ${task.technician}`, sub:`${task.targetDate||task.created} · Supervisor`, color:"#a855f7" } : null,
+          ].filter(Boolean).map((e, i, arr) => (
+            <div key={i} style={{ display:"flex", gap:13, paddingBottom:18, position:"relative" }}>
+              {i < arr.length-1 && <div style={{ position:"absolute", left:4, top:14, bottom:0, width:1, background:"#e5e7eb" }} />}
+              <div style={{ width:9, height:9, borderRadius:"50%", background:e.color, flexShrink:0, marginTop:5, zIndex:1 }} />
+              <div><div style={{ fontSize:13.5, fontWeight:500 }}>{e.label}</div><div style={{ fontSize:12, color:"#9ca3af", marginTop:2 }}>{e.sub}</div></div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:20, paddingTop:14, borderTop:"1.5px solid #f3f4f6" }}>
+        {perms.assign && !task.technician && task.status === "Submitted" && (
+          <button onClick={() => onAssign(task)} style={{ padding:"9px 16px", background:"#f5f3ff", color:"#7c3aed", border:"1.5px solid #c4b5fd", borderRadius:9, fontSize:13.5, cursor:"pointer", fontFamily:"inherit" }}>Assign technician</button>
+        )}
+        {(perms.viewAll || task.createdBy === user.id) && (
+          <button onClick={() => onEdit(task)} style={{ padding:"9px 16px", background:"#fff", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13.5, cursor:"pointer", fontFamily:"inherit" }}>Edit task</button>
+        )}
+        <button onClick={onClose} style={{ padding:"9px 18px", background:"#3b6ef8", color:"#fff", border:"none", borderRadius:9, fontSize:13.5, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Close</button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ADMIN PANEL
+══════════════════════════════════════════════ */
+function AdminPanel({ allUsers, setAllUsers }) {
+  const { perms } = useAuth();
+  const [showAdd, setShowAdd] = useState(false);
+  const [editU,   setEditU]   = useState(null);
+  const [nf, setNf] = useState({ name:"", email:"", password:"", role:"Counter Staff", branch:BRANCHES[0] });
+  const sn = (k,v) => setNf(p => ({ ...p, [k]:v }));
+
+  if (!perms.admin) {
+    return (
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"80px 32px", textAlign:"center" }}>
+        <div style={{ fontSize:36, marginBottom:14 }}>🔒</div>
+        <div style={{ fontSize:17, fontWeight:700, marginBottom:8 }}>Access restricted</div>
+        <div style={{ fontSize:14, color:"#9ca3af" }}>System administration is limited to Admin users only.</div>
+      </div>
+    );
+  }
+
+  const saveUser = () => {
+    if (!nf.name || !nf.email || !nf.password) return;
+    const rc = ROLE_COLORS[nf.role] || { color:"#6b7280" };
+    const av = nf.name.split(" ").map(x => x[0]).join("").toUpperCase().slice(0,2);
+    const u = { ...nf, id: editU?.id || `U${String(allUsers.length+1).padStart(3,"0")}`, avatar:av, color:rc.color };
+    if (editU) { setAllUsers(p => p.map(x => x.id===editU.id ? u : x)); }
+    else       { setAllUsers(p => [...p, u]); }
+    setShowAdd(false); setEditU(null); setNf({ name:"", email:"", password:"", role:"Counter Staff", branch:BRANCHES[0] });
+  };
+
+  const PERM_ROWS = [
+    ["Create tasks","createTask"], ["View all tasks","viewAll"], ["Assign tasks","assign"],
+    ["Update status","updateStatus"], ["View reports","reports"], ["System admin","admin"],
+  ];
+
+  return (
+    <div>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:22 }}>
+        <div><h1 style={{ fontSize:22, fontWeight:700 }}>User management</h1><div style={{ fontSize:13, color:"#9ca3af", marginTop:3 }}>{allUsers.length} users · {[...new Set(allUsers.map(u=>u.branch))].length} branches</div></div>
+        <button onClick={() => { setShowAdd(true); setEditU(null); setNf({ name:"", email:"", password:"", role:"Counter Staff", branch:BRANCHES[0] }); }}
+          style={{ padding:"9px 18px", background:"#3b6ef8", color:"#fff", border:"none", borderRadius:9, fontSize:13.5, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+          + Add user
+        </button>
+      </div>
+
+      {/* Role summary */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:11, marginBottom:20 }}>
+        {Object.entries(ROLE_COLORS).map(([role, rc]) => (
+          <div key={role} style={{ background:"#fff", borderRadius:12, padding:"14px 16px", boxShadow:"0 1px 3px rgba(0,0,0,.06)" }}>
+            <div style={{ fontSize:22, marginBottom:7 }}>{rc.icon}</div>
+            <div style={{ fontSize:22, fontWeight:700 }}>{allUsers.filter(u=>u.role===role).length}</div>
+            <div style={{ fontSize:12, fontWeight:600, color:rc.color, marginTop:2 }}>{role}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Permissions matrix */}
+      <div style={{ background:"#fff", borderRadius:13, padding:"18px 20px", boxShadow:"0 1px 3px rgba(0,0,0,.06)", marginBottom:18, overflowX:"auto" }}>
+        <div style={{ fontSize:14, fontWeight:700, marginBottom:14 }}>Permissions matrix</div>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12.5, minWidth:600 }}>
+          <thead>
+            <tr style={{ background:"#f9fafb", borderBottom:"1.5px solid #e5e7eb" }}>
+              <th style={{ padding:"9px 13px", textAlign:"left", fontWeight:600, color:"#9ca3af" }}>Permission</th>
+              {Object.keys(ROLE_PERMS).map(r => <th key={r} style={{ padding:"9px 10px", textAlign:"center", fontWeight:700, color: ROLE_COLORS[r]?.color||"#6b7280", fontSize:11.5 }}>{r}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {PERM_ROWS.map(([label, key], i) => (
+              <tr key={key} style={{ borderBottom:"1px solid #f3f4f6", background: i%2===0?"#fff":"#fafafa" }}>
+                <td style={{ padding:"8px 13px", fontWeight:500 }}>{label}</td>
+                {Object.entries(ROLE_PERMS).map(([role, p]) => (
+                  <td key={role} style={{ padding:"8px 10px", textAlign:"center" }}>
+                    {p[key]
+                      ? <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:19, height:19, borderRadius:"50%", background:"#d1fae5", color:"#059669", fontSize:11, fontWeight:700 }}>✓</span>
+                      : <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:19, height:19, borderRadius:"50%", background:"#f3f4f6", color:"#d1d5db", fontSize:11 }}>—</span>
+                    }
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* User table */}
+      <div style={{ background:"#fff", borderRadius:13, boxShadow:"0 1px 3px rgba(0,0,0,.06)", overflow:"hidden" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+          <thead>
+            <tr style={{ background:"#f9fafb", borderBottom:"1.5px solid #e5e7eb" }}>
+              {["User","Role","Branch","Email",""].map(h => <th key={h} style={{ padding:"10px 13px", textAlign:"left", fontWeight:700, fontSize:11.5, color:"#9ca3af", letterSpacing:".04em" }}>{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {allUsers.map((u, i) => (
+              <tr key={u.id} style={{ borderBottom:"1px solid #f3f4f6", background: i%2===0?"#fff":"#fafafa" }}>
+                <td style={{ padding:"11px 13px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                    <div style={{ width:31, height:31, borderRadius:8, background:u.color+"22", border:`1.5px solid ${u.color}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:u.color, flexShrink:0 }}>{u.avatar}</div>
+                    <div><div style={{ fontWeight:600 }}>{u.name}</div><div style={{ fontSize:11, color:"#9ca3af", fontFamily:"'DM Mono',monospace" }}>{u.id}</div></div>
+                  </div>
+                </td>
+                <td style={{ padding:"11px 13px" }}><RolePill role={u.role} /></td>
+                <td style={{ padding:"11px 13px", color:"#374151" }}>{u.branch}</td>
+                <td style={{ padding:"11px 13px", color:"#6b7280", fontSize:12, fontFamily:"'DM Mono',monospace" }}>{u.email}</td>
+                <td style={{ padding:"11px 13px" }}>
+                  <div style={{ display:"flex", gap:6 }}>
+                    <button onClick={() => { setEditU(u); setNf({ name:u.name, email:u.email, password:u.password, role:u.role, branch:u.branch }); setShowAdd(true); }}
+                      style={{ padding:"4px 11px", background:"#f9fafb", border:"1.5px solid #e5e7eb", borderRadius:7, cursor:"pointer", fontSize:12, fontFamily:"inherit" }}>Edit</button>
+                    <button onClick={() => setAllUsers(p => p.filter(x => x.id!==u.id))}
+                      style={{ padding:"4px 11px", background:"#fef2f2", color:"#dc2626", border:"1px solid #fca5a5", borderRadius:7, cursor:"pointer", fontSize:12, fontFamily:"inherit" }}>Remove</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Add/edit drawer */}
+      {showAdd && (
+        <Drawer title={editU ? "Edit user" : "Add new user"} sub={editU ? "Update user details" : "Create a system account"} onClose={() => { setShowAdd(false); setEditU(null); }} width={520}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:13 }}>
+            <SecHead title="User details" />
+            <FRow label="Full name" req span={2}><Inp value={nf.name} onChange={v => sn("name",v)} placeholder="Full name" /></FRow>
+            <FRow label="Email address" req><Inp value={nf.email} onChange={v => sn("email",v)} placeholder="user@service.mv" /></FRow>
+            <FRow label="Password" req><Inp value={nf.password} onChange={v => sn("password",v)} placeholder="Set password" type="password" /></FRow>
+            <SecHead title="Role & access" />
+            <FRow label="Role"><Sel value={nf.role} onChange={v => sn("role",v)} opts={Object.keys(ROLE_PERMS)} /></FRow>
+            <FRow label="Branch"><Sel value={nf.branch} onChange={v => sn("branch",v)} opts={["All", ...BRANCHES]} /></FRow>
+            {nf.role && (
+              <div style={{ gridColumn:"1/-1", background: ROLE_COLORS[nf.role]?.bg, borderRadius:10, padding:"11px 13px", border:`1px solid ${ROLE_COLORS[nf.role]?.color}33` }}>
+                <div style={{ fontSize:13, fontWeight:600, color:ROLE_COLORS[nf.role]?.color }}>{ROLE_COLORS[nf.role]?.icon} {nf.role}</div>
+                <div style={{ fontSize:12, color:"#6b7280", marginTop:3 }}>
+                  {["createTask","viewAll","assign","updateStatus","reports","admin"].filter(k => ROLE_PERMS[nf.role]?.[k]).join(" · ") || "No special permissions"}
+                </div>
+              </div>
+            )}
+            <div style={{ gridColumn:"1/-1", display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:"1.5px solid #f3f4f6" }}>
+              <button onClick={() => { setShowAdd(false); setEditU(null); }} style={{ padding:"9px 18px", background:"#fff", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13.5, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
+              <button onClick={saveUser} disabled={!nf.name||!nf.email||!nf.password}
+                style={{ padding:"9px 20px", background: nf.name&&nf.email&&nf.password ? "#3b6ef8" : "#e5e7eb", color: nf.name&&nf.email&&nf.password ? "#fff" : "#9ca3af", border:"none", borderRadius:9, fontSize:13.5, fontWeight:600, cursor: nf.name&&nf.email&&nf.password?"pointer":"default", fontFamily:"inherit" }}>
+                {editU ? "Save changes" : "Create user"}
+              </button>
+            </div>
+          </div>
+        </Drawer>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   MAIN SHELL
+══════════════════════════════════════════════ */
+function Shell({ startUser, onLogout }) {
+  const [currentUser, setCurrentUser] = useState(startUser);
+  const [allUsers,  setAllUsers]  = useState(USERS);
+  const [tasks,     setTasks]     = useState(INIT_TASKS);
+  const [view,      setView]      = useState(ROLE_PERMS[startUser.role].nav[0]);
+  const [drawer,    setDrawer]    = useState(null);
+  const [filt,      setFilt]      = useState({ q:"", status:"", priority:"", area:"" });
+  const [userMenu,  setUserMenu]  = useState(false);
+
+  const perms = ROLE_PERMS[currentUser.role];
+  const sf = (k,v) => setFilt(p => ({ ...p, [k]:v }));
+
+  const saveTask = t => {
+    const id      = t.id || `TSK-${String(Math.floor(Math.random()*9000)+1000)}`;
+    const created = t.created || new Date().toISOString().split("T")[0];
+    const nt = { ...t, id, created };
+    setTasks(p => { const i = p.findIndex(x => x.id===id); return i>=0 ? [...p.slice(0,i), nt, ...p.slice(i+1)] : [...p, nt]; });
+    setDrawer(null);
+  };
+
+  const statusUpdate = (id, status, findings, repairAction) => {
+    setTasks(p => p.map(t => t.id===id ? { ...t, status, findings, repairAction } : t));
+    setDrawer(null);
+  };
+
+  // Role-scoped task visibility
+  const visible = tasks.filter(t => {
+    if (currentUser.role === "Technician")   return t.techId === currentUser.id;
+    if (currentUser.role === "Counter Staff") return t.createdBy === currentUser.id;
+    return true;
+  });
+
+  const filtered = visible.filter(t => {
+    const q = filt.q.toLowerCase();
+    if (filt.status   && t.status   !== filt.status)   return false;
+    if (filt.priority && t.priority !== filt.priority) return false;
+    if (filt.area     && t.category !== filt.area)     return false;
+    if (q && !t.id.toLowerCase().includes(q) && !t.customer.toLowerCase().includes(q) && !t.serial.toLowerCase().includes(q) && !(t.contact||"").includes(q)) return false;
+    return true;
+  });
+
+  const stats = {
+    total:     visible.length,
+    pending:   visible.filter(t => ["New","Submitted"].includes(t.status)).length,
+    active:    visible.filter(t => ["Assigned","Accepted","In Progress"].includes(t.status)).length,
+    completed: visible.filter(t => t.status === "Completed").length,
+    warranty:  visible.filter(t => t.warranty === "Under Warranty").length,
+    critical:  visible.filter(t => t.priority === "Critical / Urgent").length,
+  };
+
+  const techLoad = allUsers.filter(u => u.role==="Technician").map(u => ({
+    u, c: tasks.filter(t => t.techId===u.id && !["Completed","Closed","Cancelled"].includes(t.status)).length
+  }));
+
+  const NAV = { dashboard:{i:"▦",l:"Dashboard"}, pool:{i:"☰",l:"Task pool"}, mytasks:{i:"📌",l:"My tasks"}, new:{i:"＋",l:"New task"}, reports:{i:"↗",l:"Reports"}, admin:{i:"⚙",l:"Admin"} };
+
+  const authVal = { user:currentUser, perms };
+
+  return (
+    <Auth.Provider value={authVal}>
+      <div style={{ display:"flex", height:"100vh", overflow:"hidden", fontFamily:"'DM Sans',sans-serif" }}>
+
+        {/* ── SIDEBAR ── */}
+        <aside style={{ width:220, background:"#0f1117", display:"flex", flexDirection:"column", flexShrink:0 }}>
+          <div style={{ padding:"20px 16px 12px" }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#3b6ef8,#6c47ff)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, color:"#fff", fontSize:16, marginBottom:12 }}>S</div>
+            <div style={{ fontSize:13.5, fontWeight:700, color:"#f9fafb" }}>Service & Projects</div>
+            <div style={{ fontSize:11, color:"#4b5563", marginTop:1 }}>Management system</div>
+          </div>
+
+          {perms.createTask && (
+            <div style={{ padding:"0 11px 11px" }}>
+              <button onClick={() => setDrawer({ type:"create" })}
+                style={{ width:"100%", padding:"9px 0", background:"#3b6ef8", color:"#fff", border:"none", borderRadius:9, fontSize:13, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6, fontFamily:"inherit" }}>
+                <span style={{ fontSize:16 }}>+</span> New task
+              </button>
+            </div>
+          )}
+
+          <nav style={{ flex:1, padding:"0 7px" }}>
+            {perms.nav.map(n => {
+              const d = NAV[n];
+              if (!d) return null;
+              return (
+                <button key={n} onClick={() => setView(n)}
+                  style={{ display:"flex", alignItems:"center", gap:9, width:"100%", padding:"9px 11px", border:"none", borderRadius:8, cursor:"pointer", fontSize:13, fontWeight: view===n ? 600 : 400, background: view===n ? "rgba(59,110,248,.22)" : "transparent", color: view===n ? "#93c5fd" : "#6b7280", marginBottom:1, textAlign:"left", fontFamily:"inherit" }}>
+                  <span>{d.i}</span>{d.l}
+                </button>
+              );
+            })}
+
+            {(currentUser.role==="Supervisor"||currentUser.role==="Manager"||currentUser.role==="Admin") && (
+              <div style={{ marginTop:20, padding:"0 3px" }}>
+                <div style={{ fontSize:10, fontWeight:700, color:"#374151", letterSpacing:".1em", textTransform:"uppercase", marginBottom:7, padding:"0 8px" }}>Tech load</div>
+                {techLoad.map(({ u:t, c }) => (
+                  <div key={t.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"4px 8px", borderRadius:6, marginBottom:2 }}>
+                    <span style={{ fontSize:12, color:"#6b7280", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name.split(" ")[0]}</span>
+                    <span style={{ background: c>0 ? "rgba(59,110,248,.3)" : "rgba(255,255,255,.06)", color: c>0 ? "#93c5fd" : "#4b5563", borderRadius:99, padding:"1px 8px", fontSize:11, fontWeight:700, flexShrink:0 }}>{c}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </nav>
+
+          {/* User area */}
+          <div style={{ padding:"11px", borderTop:"1px solid rgba(255,255,255,.06)", position:"relative" }}>
+            <button onClick={() => setUserMenu(x => !x)}
+              style={{ display:"flex", alignItems:"center", gap:9, width:"100%", padding:"7px 9px", border:"none", background: userMenu?"rgba(255,255,255,.07)":"transparent", borderRadius:8, cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
+              <div style={{ width:30, height:30, borderRadius:8, background:currentUser.color+"33", border:`1.5px solid ${currentUser.color}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11.5, color:currentUser.color, fontWeight:700, flexShrink:0 }}>{currentUser.avatar}</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:12, fontWeight:600, color:"#d1d5db", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{currentUser.name}</div>
+                <div style={{ fontSize:10.5, color:currentUser.color, fontWeight:600 }}>{currentUser.role}</div>
+              </div>
+              <span style={{ color:"#4b5563", fontSize:11 }}>{userMenu?"▴":"▾"}</span>
+            </button>
+
+            {userMenu && (
+              <div style={{ position:"absolute", bottom:"calc(100% + 6px)", left:11, right:11, background:"#1f2937", borderRadius:9, border:"1px solid rgba(255,255,255,.09)", padding:7, zIndex:200 }}>
+                <div style={{ padding:"7px 9px", borderBottom:"1px solid rgba(255,255,255,.07)", marginBottom:5 }}>
+                  <div style={{ fontSize:11.5, color:"#9ca3af" }}>Signed in as</div>
+                  <div style={{ fontSize:13, fontWeight:600, color:"#fff", marginTop:2 }}>{currentUser.name}</div>
+                  <div style={{ fontSize:11, color:"#6b7280" }}>{currentUser.email}</div>
+                  <div style={{ marginTop:5 }}><RolePill role={currentUser.role} /></div>
+                </div>
+                <button onClick={() => { setUserMenu(false); onLogout(); }}
+                  style={{ width:"100%", padding:"7px 9px", background:"transparent", border:"none", borderRadius:6, cursor:"pointer", fontSize:13, color:"#ef4444", textAlign:"left", fontWeight:500, fontFamily:"inherit", display:"flex", alignItems:"center", gap:7 }}>
+                  🚪 Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* ── MAIN CONTENT ── */}
+        <main style={{ flex:1, overflowY:"auto", padding:"26px 28px", background:"#f0f2f7" }}>
+
+          {/* DASHBOARD */}
+          {view==="dashboard" && (
+            perms.viewAll ? (
+              <div>
+                <div style={{ marginBottom:24 }}>
+                  <h1 style={{ fontSize:21, fontWeight:700 }}>Dashboard</h1>
+                  <div style={{ fontSize:13, color:"#9ca3af", marginTop:3 }}>{new Date().toLocaleDateString("en-MV",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:13, marginBottom:22 }}>
+                  {[{i:"📋",l:"Total tasks",v:stats.total,c:"#eff6ff"},{i:"⏳",l:"Pending",v:stats.pending,c:"#fffbeb"},{i:"⚙️",l:"Active",v:stats.active,c:"#f5f3ff"},{i:"✅",l:"Completed",v:stats.completed,c:"#f0fdf4"},{i:"🛡",l:"Under warranty",v:stats.warranty,c:"#f0fdfa"},{i:"🔴",l:"Critical",v:stats.critical,c:"#fef2f2"}].map(({ i, l, v, c }) => (
+                    <div key={l} style={{ background:"#fff", borderRadius:13, padding:"16px 18px", boxShadow:"0 1px 3px rgba(0,0,0,.06)", display:"flex", alignItems:"center", gap:13 }}>
+                      <div style={{ width:44, height:44, borderRadius:11, background:c, display:"flex", alignItems:"center", justifyContent:"center", fontSize:19, flexShrink:0 }}>{i}</div>
+                      <div><div style={{ fontSize:25, fontWeight:700, lineHeight:1 }}>{v}</div><div style={{ fontSize:12, color:"#6b7280", marginTop:2 }}>{l}</div></div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:16 }}>
+                  <div style={{ background:"#fff", borderRadius:13, padding:"18px", boxShadow:"0 1px 3px rgba(0,0,0,.06)" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:13 }}>
+                      <div style={{ fontSize:14, fontWeight:700 }}>Recent tasks</div>
+                      <button onClick={() => setView("pool")} style={{ fontSize:12, color:"#3b6ef8", background:"none", border:"none", cursor:"pointer", fontFamily:"inherit" }}>View all →</button>
+                    </div>
+                    {[...visible].reverse().slice(0,6).map(t => (
+                      <div key={t.id} onClick={() => setDrawer({ type:"detail", data:t })}
+                        style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:"1px solid #f9fafb", cursor:"pointer" }}>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:13.5, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.customer}</div>
+                          <div style={{ fontSize:11.5, color:"#9ca3af", display:"flex", gap:5, marginTop:1 }}>
+                            <span style={{ fontFamily:"'DM Mono',monospace", color:"#3b6ef8" }}>{t.id}</span>
+                            <span>·</span><span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.product}</span>
+                          </div>
+                        </div>
+                        <SBadge s={t.status} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ background:"#fff", borderRadius:13, padding:"18px", boxShadow:"0 1px 3px rgba(0,0,0,.06)" }}>
+                    <div style={{ fontSize:14, fontWeight:700, marginBottom:13 }}>Status breakdown</div>
+                    {Object.entries(visible.reduce((a,t) => { a[t.status]=(a[t.status]||0)+1; return a; }, {})).map(([s, c]) => {
+                      const x = STATUS_STYLE[s] || STATUS_STYLE["New"];
+                      return (
+                        <div key={s} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
+                          <span style={{ width:7, height:7, borderRadius:"50%", background:x.dot, flexShrink:0 }} />
+                          <span style={{ fontSize:12, color:"#374151", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s}</span>
+                          <div style={{ width:68, height:6, background:"#f3f4f6", borderRadius:99, overflow:"hidden" }}>
+                            <div style={{ height:"100%", width:`${(c/visible.length)*100}%`, background:x.dot, borderRadius:99 }} />
+                          </div>
+                          <span style={{ fontSize:12, fontWeight:700, minWidth:14, textAlign:"right" }}>{c}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"80px 32px", textAlign:"center" }}>
+                <div style={{ fontSize:36, marginBottom:14 }}>🔒</div>
+                <div style={{ fontSize:17, fontWeight:700 }}>Access restricted</div>
+                <div style={{ fontSize:14, color:"#9ca3af", marginTop:6 }}>Dashboard is available to Supervisors, Managers and Admins.</div>
+              </div>
+            )
+          )}
+
+          {/* TASK POOL / MY TASKS */}
+          {(view==="pool" || view==="mytasks") && (
+            <div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                <div>
+                  <h1 style={{ fontSize:21, fontWeight:700 }}>{view==="mytasks" ? "My tasks" : "Task pool"}</h1>
+                  <div style={{ fontSize:13, color:"#9ca3af", marginTop:3 }}>{filtered.length} of {visible.length} tasks</div>
+                </div>
+                {perms.createTask && (
+                  <button onClick={() => setDrawer({ type:"create" })}
+                    style={{ padding:"9px 18px", background:"#3b6ef8", color:"#fff", border:"none", borderRadius:9, fontSize:13.5, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                    + New task
+                  </button>
+                )}
+              </div>
+
+              {/* Filters */}
+              <div style={{ background:"#fff", borderRadius:13, padding:"13px 15px", boxShadow:"0 1px 3px rgba(0,0,0,.06)", marginBottom:15 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", gap:9 }}>
+                  <Inp value={filt.q} onChange={v => sf("q",v)} placeholder="🔍  Search ID, customer, serial…" />
+                  <Sel value={filt.status}   onChange={v => sf("status",v)}   opts={STATUSES}   placeholder="All statuses" />
+                  <Sel value={filt.priority} onChange={v => sf("priority",v)} opts={PRIORITIES} placeholder="All priorities" />
+                  <Sel value={filt.area}     onChange={v => sf("area",v)}     opts={AREAS}      placeholder="All areas" />
+                </div>
+              </div>
+
+              {/* Table */}
+              <div style={{ background:"#fff", borderRadius:13, boxShadow:"0 1px 3px rgba(0,0,0,.06)", overflow:"hidden" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                  <thead>
+                    <tr style={{ background:"#f9fafb", borderBottom:"1.5px solid #e5e7eb" }}>
+                      {["Task ID","Customer","Product","Priority","Status","Technician","Date",""].map(h => (
+                        <th key={h} style={{ padding:"10px 13px", textAlign:"left", fontWeight:700, fontSize:11, color:"#9ca3af", whiteSpace:"nowrap", letterSpacing:".04em" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 && (
+                      <tr><td colSpan={8} style={{ textAlign:"center", padding:"44px", color:"#9ca3af", fontSize:14 }}>No tasks found</td></tr>
+                    )}
+                    {filtered.map((t, i) => (
+                      <tr key={t.id} onClick={() => setDrawer({ type:"detail", data:t })}
+                        style={{ borderBottom:"1px solid #f3f4f6", cursor:"pointer", background: i%2===0?"#fff":"#fafbff" }}
+                        onMouseEnter={e => e.currentTarget.style.background="#f0f4ff"}
+                        onMouseLeave={e => e.currentTarget.style.background = i%2===0?"#fff":"#fafbff"}>
+                        <td style={{ padding:"12px 13px" }}><span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"#3b6ef8", fontWeight:600 }}>{t.id}</span></td>
+                        <td style={{ padding:"12px 13px" }}><div style={{ fontWeight:600 }}>{t.customer}</div><div style={{ fontSize:11, color:"#9ca3af" }}>{t.contact}</div></td>
+                        <td style={{ padding:"12px 13px" }}><div>{t.product}</div><div style={{ fontSize:11, color:"#9ca3af", fontFamily:"'DM Mono',monospace" }}>{t.serial}</div></td>
+                        <td style={{ padding:"12px 13px" }}><PBadge p={t.priority} /></td>
+                        <td style={{ padding:"12px 13px" }}><SBadge s={t.status} /></td>
+                        <td style={{ padding:"12px 13px" }}>
+                          {t.technician
+                            ? <span style={{ fontSize:13 }}>{t.technician}</span>
+                            : <span style={{ background:"#fef9c3", color:"#92400e", borderRadius:99, padding:"2px 8px", fontSize:11, fontWeight:600 }}>Unassigned</span>
+                          }
+                        </td>
+                        <td style={{ padding:"12px 13px", color:"#9ca3af", fontSize:12, whiteSpace:"nowrap" }}>{t.created}</td>
+                        <td style={{ padding:"12px 13px" }} onClick={e => e.stopPropagation()}>
+                          <div style={{ display:"flex", gap:6 }}>
+                            {perms.assign && t.status==="Submitted" && !t.technician && (
+                              <button onClick={() => setDrawer({ type:"assign", data:t })}
+                                style={{ padding:"4px 11px", background:"#eff6ff", color:"#2563eb", border:"1px solid #bfdbfe", borderRadius:7, cursor:"pointer", fontSize:12, fontWeight:600, fontFamily:"inherit" }}>Assign</button>
+                            )}
+                            {(perms.viewAll || t.createdBy===currentUser.id) && (
+                              <button onClick={() => setDrawer({ type:"edit", data:t })}
+                                style={{ padding:"4px 11px", background:"#f9fafb", border:"1.5px solid #e5e7eb", borderRadius:7, cursor:"pointer", fontSize:12, fontFamily:"inherit" }}>Edit</button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* NEW TASK (inline page) */}
+          {view==="new" && (
+            perms.createTask ? (
+              <div>
+                <div style={{ marginBottom:22 }}>
+                  <h1 style={{ fontSize:21, fontWeight:700 }}>Create new task</h1>
+                  <div style={{ fontSize:13, color:"#9ca3af", marginTop:3 }}>Register a new service or project task</div>
+                </div>
+                <div style={{ background:"#fff", borderRadius:13, padding:"26px", boxShadow:"0 1px 3px rgba(0,0,0,.06)" }}>
+                  <TaskForm onSave={t => { saveTask(t); setView(perms.nav[0]); }} onClose={() => setView(perms.nav[0])} />
+                </div>
+              </div>
+            ) : (
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"80px 32px", textAlign:"center" }}>
+                <div style={{ fontSize:36, marginBottom:14 }}>🔒</div>
+                <div style={{ fontSize:17, fontWeight:700 }}>Access restricted</div>
+              </div>
+            )
+          )}
+
+          {/* REPORTS */}
+          {view==="reports" && (
+            perms.reports ? (
+              <div>
+                <div style={{ marginBottom:22 }}>
+                  <h1 style={{ fontSize:21, fontWeight:700 }}>Reports & analytics</h1>
+                  <div style={{ fontSize:13, color:"#9ca3af", marginTop:3 }}>Operational performance overview</div>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+                  <div style={{ background:"#fff", borderRadius:13, padding:"18px", boxShadow:"0 1px 3px rgba(0,0,0,.06)", gridColumn:"1/-1" }}>
+                    <div style={{ fontSize:14, fontWeight:700, marginBottom:14 }}>Technician performance</div>
+                    <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                      <thead><tr style={{ borderBottom:"1.5px solid #e5e7eb", background:"#f9fafb" }}>
+                        {["Technician","Assigned","Completed","Rate","Active"].map(h => <th key={h} style={{ padding:"9px 13px", textAlign:"left", fontWeight:700, color:"#9ca3af", fontSize:11 }}>{h}</th>)}
+                      </tr></thead>
+                      <tbody>
+                        {allUsers.filter(u => u.role==="Technician").map(u => {
+                          const as = tasks.filter(t => t.techId===u.id).length;
+                          const dn = tasks.filter(t => t.techId===u.id && t.status==="Completed").length;
+                          const ac = tasks.filter(t => t.techId===u.id && !["Completed","Closed","Cancelled"].includes(t.status)).length;
+                          const rt = as ? Math.round((dn/as)*100) : 0;
+                          return (
+                            <tr key={u.id} style={{ borderBottom:"1px solid #f3f4f6" }}>
+                              <td style={{ padding:"11px 13px" }}>
+                                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                                  <div style={{ width:28, height:28, borderRadius:7, background:u.color+"22", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:u.color }}>{u.avatar}</div>
+                                  <span style={{ fontWeight:600 }}>{u.name}</span>
+                                </div>
+                              </td>
+                              <td style={{ padding:"11px 13px" }}>{as}</td>
+                              <td style={{ padding:"11px 13px" }}>{dn}</td>
+                              <td style={{ padding:"11px 13px" }}>
+                                <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                                  <div style={{ width:88, height:6, background:"#f3f4f6", borderRadius:99, overflow:"hidden" }}>
+                                    <div style={{ height:"100%", width:`${rt}%`, background: rt>70?"#10b981":rt>40?"#f59e0b":"#ef4444", borderRadius:99 }} />
+                                  </div>
+                                  <span style={{ fontWeight:700 }}>{rt}%</span>
+                                </div>
+                              </td>
+                              <td style={{ padding:"11px 13px" }}>
+                                <span style={{ background: ac>0?"#eff6ff":"#f9fafb", color: ac>0?"#2563eb":"#9ca3af", borderRadius:99, padding:"2px 9px", fontWeight:700, fontSize:12 }}>{ac}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {[
+                    { title:"Warranty breakdown", items:WARRANTY, fn:w=>tasks.filter(t=>t.warranty===w).length, colors:{"Under Warranty":"#0d9488","Non-Warranty":"#6b7280","AMC / Service Contract":"#7c3aed"} },
+                    { title:"Tasks by area",       items:AREAS,   fn:a=>tasks.filter(t=>t.category===a).length, colors:{"Air Conditioning":"#3b6ef8","DAP":"#f59e0b","Electronics":"#6c47ff","Other":"#9ca3af"} },
+                  ].map(({ title, items, fn, colors }) => (
+                    <div key={title} style={{ background:"#fff", borderRadius:13, padding:"18px", boxShadow:"0 1px 3px rgba(0,0,0,.06)" }}>
+                      <div style={{ fontSize:14, fontWeight:700, marginBottom:14 }}>{title}</div>
+                      {items.map(item => {
+                        const c = fn(item);
+                        const pct = tasks.length ? Math.round((c/tasks.length)*100) : 0;
+                        return (
+                          <div key={item} style={{ marginBottom:11 }}>
+                            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                              <span style={{ fontSize:13, color:"#374151", fontWeight:500 }}>{item}</span>
+                              <span style={{ fontSize:13, fontWeight:700 }}>{c} <span style={{ fontSize:11, color:"#9ca3af", fontWeight:400 }}>({pct}%)</span></span>
+                            </div>
+                            <div style={{ height:6, background:"#f3f4f6", borderRadius:99, overflow:"hidden" }}>
+                              <div style={{ height:"100%", width:`${pct}%`, background: colors[item]||"#3b6ef8", borderRadius:99 }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"80px 32px", textAlign:"center" }}>
+                <div style={{ fontSize:36, marginBottom:14 }}>🔒</div>
+                <div style={{ fontSize:17, fontWeight:700 }}>Access restricted</div>
+                <div style={{ fontSize:14, color:"#9ca3af", marginTop:6 }}>Reports are available to Supervisors, Managers and Admins.</div>
+              </div>
+            )
+          )}
+
+          {/* ADMIN */}
+          {view==="admin" && <AdminPanel allUsers={allUsers} setAllUsers={setAllUsers} />}
+
+        </main>
+      </div>
+
+      {/* ── DRAWERS ── */}
+      {drawer?.type==="create" && (
+        <Drawer title="Create new task" sub="Register a new service task" onClose={() => setDrawer(null)} width={720}>
+          <TaskForm onSave={saveTask} onClose={() => setDrawer(null)} />
+        </Drawer>
+      )}
+      {drawer?.type==="edit" && (
+        <Drawer title={`Edit · ${drawer.data.id}`} sub={`${drawer.data.customer} — ${drawer.data.product}`} onClose={() => setDrawer(null)} width={720}>
+          <TaskForm init={drawer.data} onSave={saveTask} onClose={() => setDrawer(null)} />
+        </Drawer>
+      )}
+      {drawer?.type==="assign" && (
+        <Drawer title={`Assign · ${drawer.data.id}`} sub={`${drawer.data.customer} — ${drawer.data.product}`} onClose={() => setDrawer(null)} width={560}>
+          <AssignForm task={drawer.data} onSave={t => { saveTask(t); }} onClose={() => setDrawer(null)} />
+        </Drawer>
+      )}
+      {drawer?.type==="detail" && (
+        <Drawer title={drawer.data.id} sub={`${drawer.data.type} · ${drawer.data.branch}`} onClose={() => setDrawer(null)} width={760}>
+          <TaskDetail
+            task={drawer.data}
+            onClose={() => setDrawer(null)}
+            onEdit={t => setDrawer({ type:"edit", data:t })}
+            onAssign={t => setDrawer({ type:"assign", data:t })}
+            onStatusChange={statusUpdate}
+          />
+        </Drawer>
+      )}
+    </Auth.Provider>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ROOT
+══════════════════════════════════════════════ */
+function App() {
+  const [user, setUser] = useState(null);
+
+  return (
+    <>
+      <link rel="stylesheet" href={FONT} />
+      <style>{`*{box-sizing:border-box;margin:0;padding:0} body{font-family:'DM Sans',sans-serif} ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:99px}`}</style>
+      {user
+        ? <Shell startUser={user} onLogout={() => setUser(null)} />
+        : <LoginPage onLogin={setUser} />
+      }
+    </>
+  );
+}
+
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
